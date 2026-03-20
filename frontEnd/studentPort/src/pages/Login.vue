@@ -1,13 +1,13 @@
 <script>
-
-
     import { useAuthStore } from "@/stores/auth"
 
     export default {
         data(){
             return{
-            username:"Thanakorn",
-            password:"1234"
+            studentId:"6803052411022",
+            password:"1234",
+            loading:false,
+            errorMessage:""
             }
         },
         setup(){
@@ -17,15 +17,42 @@
         ,
 
         methods:{
-            login(){
+            async login(){
+                this.errorMessage = ""
 
-            const auth = useAuthStore()
-            if(this.username && this.password){
-                auth.login({
-                name: this.username
-                })
-                this.$router.push("/score")
-            }
+                if(!this.studentId || !this.password){
+                    this.errorMessage = "กรุณากรอกรหัสนักศึกษาและรหัสผ่าน"
+                    return
+                }
+
+                this.loading = true
+
+                try{
+                    const response = await fetch("http://127.0.0.1:8000/auth/login", {
+                        method:"POST",
+                        headers:{
+                            "Content-Type":"application/json"
+                        },
+                        body: JSON.stringify({
+                            student_id: this.studentId,
+                            password: this.password
+                        })
+                    })
+
+                    if(!response.ok){
+                        const result = await response.json()
+                        this.errorMessage = result.detail || "เข้าสู่ระบบไม่สำเร็จ"
+                        return
+                    }
+
+                    const userData = await response.json()
+                    this.auth.login(userData)
+                    this.$router.push("/score")
+                }catch(_error){
+                    this.errorMessage = "ไม่สามารถเชื่อมต่อ API ได้"
+                }finally{
+                    this.loading = false
+                }
             },
             logout(){
                 this.auth.logout()
@@ -42,11 +69,11 @@
 
                 <h3>กรุณาป้อน ICIT Account</h3>
 
-                <form @submit.prevent="submit">
+                <form @submit.prevent="login">
 
                     <div class="row">
                         <div class="col-12">
-                            <input v-model="username" placeholder="Account" class="form-control">
+                            <input v-model="studentId" placeholder="Student ID" class="form-control">
                         </div>
                     </div>
 
@@ -55,7 +82,10 @@
                             <input type="password" v-model="password" placeholder="Password" class="form-control">
                         </div>
                     </div>
-                    <button type="button"  @click="login" class="btn btn-primary mt-3">เข้าสู่ระบบ</button>
+                    <p v-if="errorMessage" class="text-danger mt-2 mb-0">{{ errorMessage }}</p>
+                    <button type="submit" :disabled="loading" class="btn btn-primary mt-3">
+                        {{ loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ" }}
+                    </button>
                 </form>
 
             </div>

@@ -7,10 +7,27 @@ import Score from "../pages/Score.vue"
 const routes = [
   { path: "/", component: Home },
   { path: "/login", component: Login },
-  { path: "/score", component: Score }
+  {
+    path: "/score",
+    component: Score,
+    meta: { requiresAuth: true }
+  }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+router.beforeEach((to, _from, next) => {
+  const user = JSON.parse(localStorage.getItem("user") || "null")
+
+  if (to.meta.requiresAuth && !user) {
+    next("/login")
+    return
+  }
+
+  next()
+})
+
+export default router

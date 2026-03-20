@@ -1,5 +1,14 @@
 <script>
+import { useAuthStore } from "@/stores/auth"
+
 export default {
+
+  computed: {
+    authUser(){
+      const auth = useAuthStore()
+      return auth.user
+    }
+  },
 
   data(){
     return{
@@ -7,31 +16,69 @@ export default {
       year: "",
       semester: "",
 
-      years: ["2566","2567","2568"],
-      semesters: ["1","2","3"],
-
-      scores: [
-        { subject:"Programming", score:85, grade:"A", year:"2567", semester:"1" },
-        { subject:"Database", score:78, grade:"B+", year:"2567", semester:"1" },
-        { subject:"Web Dev", score:92, grade:"A", year:"2567", semester:"2" },
-        { subject:"Math", score:65, grade:"C+", year:"2566", semester:"2" }
-      ]
+      years: [],
+      semesters: [],
+      scores: [],
+      loading: false,
+      errorMessage: ""
     }
   },
 
-  computed:{
-    filteredScores(){
-      return this.scores.filter(s => {
+  watch:{
+    year(){
+      this.fetchScores()
+    },
+    semester(){
+      this.fetchScores()
+    }
+  },
 
-        const matchYear =
-          !this.year || s.year === this.year
+  mounted(){
+    this.fetchScores()
+  },
 
-        const matchSem =
-          !this.semester || s.semester === this.semester
+  methods:{
+    async fetchScores(){
+      const auth = useAuthStore()
+      const studentId = auth.user?.student_id
 
-        return matchYear && matchSem
+      if(!studentId){
+        this.errorMessage = "ไม่พบข้อมูลนักศึกษา กรุณาเข้าสู่ระบบใหม่"
+        this.scores = []
+        return
+      }
 
-      })
+      this.loading = true
+      this.errorMessage = ""
+
+      try{
+        const params = new URLSearchParams()
+        if(this.year){
+          params.set("year", this.year)
+        }
+        if(this.semester){
+          params.set("semester", this.semester)
+        }
+
+        const queryString = params.toString() ? `?${params.toString()}` : ""
+        const response = await fetch(`http://127.0.0.1:8000/scores/${studentId}${queryString}`)
+
+        if(!response.ok){
+          this.errorMessage = "โหลดคะแนนไม่สำเร็จ"
+          this.scores = []
+          return
+        }
+
+        const result = await response.json()
+        this.scores = result.items || []
+        this.years = result.years || []
+        this.semesters = result.semesters || []
+      }catch(_error){
+        this.errorMessage = "ไม่สามารถเชื่อมต่อ API ได้"
+        this.scores = []
+      }finally{
+        this.loading = false
+      }
     }
   }
 }
@@ -40,6 +87,11 @@ export default {
 <template>
 
 <div class="score-card mt-3">
+
+  <div class="student-header mb-3">
+    <h5 class="mb-1">ชื่อ: {{ authUser?.name || '-' }}</h5>
+    <div>รหัสนักศึกษา: {{ authUser?.student_id || '-' }}</div>
+  </div>
 
   <div class="filter-bar">
 
@@ -76,7 +128,16 @@ export default {
     </thead>
 
     <tbody>
-      <tr v-for="(s,i) in filteredScores" :key="i">
+      <tr v-if="loading">
+        <td colspan="5">กำลังโหลดข้อมูล...</td>
+      </tr>
+      <tr v-else-if="errorMessage">
+        <td colspan="5">{{ errorMessage }}</td>
+      </tr>
+      <tr v-else-if="scores.length === 0">
+        <td colspan="5">ไม่พบข้อมูลคะแนน</td>
+      </tr>
+      <tr v-else v-for="(s,i) in scores" :key="`${s.subject}-${s.year}-${s.semester}-${i}`">
         <td>{{ s.subject }}</td>
         <td>{{ s.score }}</td>
         <td>{{ s.grade }}</td>
