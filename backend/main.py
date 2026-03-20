@@ -52,8 +52,21 @@ def _verify_password(raw_password: str, user_doc: dict) -> bool:
 
 
 @app.get("/")
-async def root():
-    return {"message": "StudentPort API is running"}
+async def root(student_id: Optional[str] = Query(default=None)):
+    if not student_id:
+        return {"message": "StudentPort API is running", "usage": "?student_id=<id>"}
+
+    user = users_collection.find_one({"student_id": student_id}, {"_id": 0, "password": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    scores = list(scores_collection.find({"student_id": student_id}, {"_id": 0}))
+
+    return {
+        "user": user,
+        "scores": scores,
+        "score_count": len(scores)
+    }
 
 
 @app.post("/auth/login")
