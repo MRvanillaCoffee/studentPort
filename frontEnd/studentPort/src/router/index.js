@@ -5,12 +5,12 @@ import Login from "../pages/Login.vue"
 import Score from "../pages/Score.vue"
 
 const routes = [
- { path: "/", component: Home },
- { path: "/login", component: Login },
- { path: "/score", component: Score }
+  { path: "/", component: Home },
+  { path: "/login", component: Login },
+  { path: "/score", component: Score }
 ]
 
 export default createRouter({
- history: createWebHistory(),
- routes
+  history: createWebHistory(),
+  routes
 })

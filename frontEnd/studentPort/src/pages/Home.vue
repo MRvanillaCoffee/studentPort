@@ -1,13 +1,20 @@
 <script>
-export default {}
+import NewsCard from '@/components/NewsCard.vue';
+export default {
+    components: {NewsCard}
+}
 </script>
 
 <template>
 
-    <div>
-        <h2>ระบบรายงานผลการเรียนรู้ตามเกณฑ์คะแนน</h2>
-
-        <div class="card">ข่าวสาร/ประกาศ</div>
+    <div class="home">
+        <NewsCard/>
     </div>
 
 </template>
+
+<style>
+    .home{
+        margin-top: 20px;
+    }
+</style>

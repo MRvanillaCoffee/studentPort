@@ -7,8 +7,12 @@ export default {}
 
         <h4>ข่าวสาร/ประกาศ</h4>
 
-        <div class="content">
-            
+        <div class="news-box">
+            SHOW NEWS
+        </div>
+
+        <div class="news-box mt-5">
+            SHOW NEWS
         </div>
 
     </div>
@@ -21,8 +25,15 @@ export default {}
         border-radius:10px;
         box-shadow:0 2px 6px rgba(0,0,0,0.1);
     }
-    .content{
+    .news-box{
         height:300px;
-        background:#eee;
+        background:grey;
+        border-radius:8px;
+
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:white;
+        font-weight:bold;
     }
 </style>
