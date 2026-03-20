@@ -20,7 +20,7 @@ export default{
             <li><router-link to="/" class="link"><i class="bi bi-house"></i>  หน้าแรก</router-link></li>
             <li v-if="!auth.isLoggedIn"> <router-link to="/login" class="link"><i class="bi bi-box-arrow-in-right"></i>เข้าสู่ระบบ</router-link></li>
             <li v-if="auth.isLoggedIn"><router-link to="/score" class="link"><i class="bi bi-archive"></i>คะแนน</router-link></li>
-            <li><i class="bi bi-book"></i> สาขาที่เปิดสอบ</li>
+            <li><i class="bi bi-book"></i> สาขาที่เปิดสอน</li>
             <li><i class="bi bi-journals"></i> โครงสร้างหลักสูตร</li>
         </ul>
     </div>
