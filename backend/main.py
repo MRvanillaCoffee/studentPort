@@ -1,5 +1,9 @@
+import base64
 import hashlib
+import hmac
+import json
 import os
+import time
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
@@ -10,6 +14,8 @@ from pymongo import MongoClient
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "student_port")
+AUTH_SECRET = os.getenv("AUTH_SECRET", "change-this-secret")
+AUTH_TOKEN_EXPIRE_SECONDS = int(os.getenv("AUTH_TOKEN_EXPIRE_SECONDS", "3600"))
 
 
 client = MongoClient(MONGO_URI)
@@ -36,6 +42,15 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class LoginResponse(BaseModel):
+    name: str
+    username: str
+    student_id: str
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
 def _hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
@@ -49,6 +64,24 @@ def _verify_password(raw_password: str, user_doc: dict) -> bool:
     if plain_password:
         return raw_password == plain_password
     return False
+
+
+def _create_signed_token(student_id: str, expires_in: int) -> str:
+    now = int(time.time())
+    payload = {
+        "sub": student_id,
+        "iat": now,
+        "exp": now + expires_in,
+    }
+    payload_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    payload_b64 = base64.urlsafe_b64encode(payload_bytes).decode("utf-8").rstrip("=")
+    signature = hmac.new(
+        AUTH_SECRET.encode("utf-8"),
+        payload_b64.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    signature_b64 = base64.urlsafe_b64encode(signature).decode("utf-8").rstrip("=")
+    return f"{payload_b64}.{signature_b64}"
 
 
 @app.get("/")
@@ -69,17 +102,22 @@ async def root(student_id: Optional[str] = Query(default=None)):
     }
 
 
-@app.post("/auth/login")
-async def login(payload: LoginRequest):
+@app.post("/auth/login", response_model=LoginResponse)
+async def login(payload: LoginRequest) -> LoginResponse:
     user = users_collection.find_one({"student_id": payload.student_id})
     if not user or not _verify_password(payload.password, user):
         raise HTTPException(status_code=401, detail="Username or password is incorrect")
 
-    return {
-        "name": user.get("name", payload.student_id),
-        "username": user.get("username", ""),
-        "student_id": user.get("student_id", ""),
-    }
+    expires_in = AUTH_TOKEN_EXPIRE_SECONDS
+    token = _create_signed_token(payload.student_id, expires_in)
+
+    return LoginResponse(
+        name=user.get("name", payload.student_id),
+        username=user.get("username", ""),
+        student_id=user.get("student_id", ""),
+        access_token=token,
+        expires_in=expires_in,
+    )
 
 
 @app.get("/scores/{student_id}")
