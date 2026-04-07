@@ -89,10 +89,12 @@ def get_current_admin(current_user: models.User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
+# API: Health Check
 @app.get("/")
 def read_root():
     return {"message": "Student Portfolio API"}
 
+# API: Authentication - Register
 @app.post("/api/register", response_model=schemas.UserResponse)
 def register(
     user: schemas.UserCreate,
@@ -124,6 +126,7 @@ def register(
     db.refresh(db_user)
     return db_user
 
+# API: Authentication - Login
 @app.post("/api/login", response_model=schemas.TokenResponse)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
@@ -145,10 +148,12 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
         "user": db_user
     }
 
+# API: Users - Current User Profile
 @app.get("/api/users/me", response_model=schemas.UserResponse)
 def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+# API: Items - List Items (Authenticated)
 @app.get("/api/items/")
 def read_items(
     db: Session = Depends(get_db),
@@ -156,6 +161,7 @@ def read_items(
 ):
     return db.query(models.Item).all()
 
+# API: Users - List Users (Admin Only)
 @app.get("/api/users/")
 def read_users(
     db: Session = Depends(get_db),
@@ -163,6 +169,7 @@ def read_users(
 ):
     return db.query(models.User).all()
 
+# API: Users - Delete User (Admin Only)
 @app.delete("/api/users/{user_id}")
 def delete_user(
     user_id: int,
